@@ -1,0 +1,3 @@
+[2026-08-30 09:54:56,565] INFO root: starting the data ingestion pipelines
+[2026-08-30 09:55:01,342] INFO root: Collected data from MongoDb
+[2026-08-30 09:55:01,343] INFO root: pulled59540 rows,7 columns from MongoDb
