@@ -1,0 +1,8 @@
+[2026-09-03 10:25:21,105] INFO root: starting the data ingestion pipelines
+[2026-09-03 10:25:30,507] INFO root: Collected data from MongoDb
+[2026-09-03 10:25:30,507] INFO root: pulled89310 rows,7 columns from MongoDb
+[2026-09-03 10:25:30,750] INFO root: performed split on data
+[2026-09-03 10:25:30,750] INFO root: acquired file path for train and test data
+[2026-09-03 10:25:30,974] INFO root: saved train and test datasets
+[2026-09-03 10:25:30,984] INFO root: Data ingestion completed successfully
+[2026-09-03 10:25:31,019] INFO root: data ingestion completed

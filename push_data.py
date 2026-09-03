@@ -22,15 +22,20 @@ class NetworkDataExtract:
         pass
 
     def csv_to_json_convertor(self, filepath, station_name):
-
         try:
-           data = pd.read_csv(filepath)
-           data.reset_index(drop=True, inplace=True)
-           data["station"] = station_name
-           records = list(json.loads(data.T.to_json()).values())
-           return records
+
+          data = pd.read_csv(filepath, skiprows=3)
+          data = data.rename(columns={
+            "temperature_2m (°C)": "temperature_2m",
+            "relative_humidity_2m (%)": "relative_humidity_2m",
+            "surface_pressure (hPa)": "surface_pressure"
+        })
+          data.reset_index(drop=True, inplace=True)
+          data["station"] = station_name
+          records = list(json.loads(data.T.to_json()).values())
+          return records
         except Exception as e:
-           raise CustomException(e, sys)
+          raise CustomException(e, sys)
     def insert_data_mongoDB(self,records,database,collection):
         try:
             self.records=records

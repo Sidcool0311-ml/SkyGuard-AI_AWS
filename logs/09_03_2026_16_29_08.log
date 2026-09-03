@@ -1,0 +1,15 @@
+[2026-09-03 16:29:08,777] INFO root: Anomaly injection complete. Distribution:
+anomaly_type
+normal         22854
+cross_param      476
+dropout          468
+frozen             9
+spike              1
+Name: count, dtype: int64
+[2026-09-03 16:29:08,892] INFO root: Anomaly injection complete. Distribution:
+anomaly_type
+normal         5715
+cross_param     119
+dropout         117
+spike             1
+Name: count, dtype: int64
