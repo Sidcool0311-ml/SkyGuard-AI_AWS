@@ -52,7 +52,14 @@ TRANSFORMED_TEST_FILE_NAME: str = "test.npy"
 MODEL_TRAINER_DIR_NAME: str = "model_trainer"
 MODEL_TRAINER_TRAINED_MODEL_DIR: str = "trained_model"
 MODEL_FILE_NAME: str = "model.pkl"
+MODEL_TRAINER_EXPLAINER_DIR: str = "explainers"
+SHAP_EXPLAINER_FILE_NAME: str = "shap_explainer.pkl"
+LIME_EXPLAINER_FILE_NAME: str = "lime_explainer.pkl"
+BACKGROUND_DATA_FILE_NAME: str = "background_data.npy"
+MODEL_TRAINER_CONTAMINATION: float = 0.10
+
 
 # ---------------- Timestamp ----------------
 def get_timestamp() -> str:
     return datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+

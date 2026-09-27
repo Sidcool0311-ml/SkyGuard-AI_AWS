@@ -59,24 +59,32 @@ class DataIngestion:
         
         except Exception as e:
             raise CustomException(e,sys)
-    def split_data_as_train_test(self,dataframe:pd.DataFrame):
+    def split_data_as_train_test(self, dataframe: pd.DataFrame):
         try:
-            train_set,test_set=train_test_split(dataframe,test_size=self.data_ingestion_config.train_test_split_ratio)
-            logging.info("performed split on data")
-            logging.info("acquired file path for train and test data")
-            dir_path=os.path.dirname(self.data_ingestion_config.training_file_path)
-            os.makedirs(dir_path, exist_ok=True)   
-            ##saving train data
-            train_set.to_csv(
-                self.data_ingestion_config.training_file_path,
-                index=False
+            logging.info("Performing chronological time-series split per station")
+            if "station" in dataframe.columns and "time" in dataframe.columns:
+                train_chunks = []
+                test_chunks = []
+                for _, group in dataframe.groupby("station"):
+                    sorted_group = group.sort_values(by="time").reset_index(drop=True)
+                    split_idx = int(len(sorted_group) * (1.0 - self.data_ingestion_config.train_test_split_ratio))
+                    train_chunks.append(sorted_group.iloc[:split_idx])
+                    test_chunks.append(sorted_group.iloc[split_idx:])
+                train_set = pd.concat(train_chunks, ignore_index=True)
+                test_set = pd.concat(test_chunks, ignore_index=True)
+            else:
+                train_set, test_set = train_test_split(
+                    dataframe,
+                    test_size=self.data_ingestion_config.train_test_split_ratio,
+                    shuffle=False
                 )
-            ##saving test data
-            test_set.to_csv(
-               self.data_ingestion_config.testing_file_path,
-             index=False
-               )
-            logging.info("saved train and test datasets")
+
+            logging.info(f"Train split rows: {len(train_set)}, Test split rows: {len(test_set)}")
+            dir_path = os.path.dirname(self.data_ingestion_config.training_file_path)
+            os.makedirs(dir_path, exist_ok=True)
+            train_set.to_csv(self.data_ingestion_config.training_file_path, index=False)
+            test_set.to_csv(self.data_ingestion_config.testing_file_path, index=False)
+            logging.info("Saved contiguous chronological train and test datasets")
 
             return DataIngestionArtifact(
                 trained_file_path=self.data_ingestion_config.training_file_path,

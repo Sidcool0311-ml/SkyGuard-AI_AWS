@@ -6,15 +6,18 @@ from skyguard.entity.config_entity import (
     TrainingPipelineConfig,
     DataValidationConfig,
     DataTransformationConfig,
+    ModelTrainerConfig,
 )
 from skyguard.entity.artifact_entity import (
     DataIngestionArtifact,
     DataValidationArtifact,
     DataTransformationArtifact,
+    ModelTrainerArtifact,
 )
 from skyguard.components.data_ingestion import DataIngestion
 from skyguard.components.data_validation import DataValidation
 from skyguard.components.data_transformation import DataTransformation
+from skyguard.components.model_trainer import ModelTrainer
 from skyguard.exception.exception import CustomException
 from skyguard.logger.logger import logging
 
@@ -53,6 +56,17 @@ if __name__ == "__main__":
         data_transformation_artifact = data_transformation.initiate_data_transformation()
         logging.info("Data Transformation completed")
         print("Data Transformation Artifact:", data_transformation_artifact)
+
+        # 4. Model Training & XAI Setup (Isolation Forest, SHAP, LIME)
+        logging.info("Starting Model Training")
+        model_trainer_config = ModelTrainerConfig(training_pipeline_config)
+        model_trainer = ModelTrainer(
+            model_trainer_config=model_trainer_config,
+            data_transformation_artifact=data_transformation_artifact
+        )
+        model_trainer_artifact = model_trainer.initiate_model_trainer()
+        logging.info("Model Training completed")
+        print("Model Trainer Artifact:", model_trainer_artifact)
 
     except Exception as e:
         raise CustomException(e, sys)

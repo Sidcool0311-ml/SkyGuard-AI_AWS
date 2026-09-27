@@ -139,6 +139,93 @@ class SensorFeatureEngineer(BaseEstimator, TransformerMixin):
             raise CustomException(e, sys)
 
 
+class SyntheticAnomalyInjector:
+    """
+    Injects synthetic atmospheric telemetry anomalies to establish ground-truth evaluation benchmarks:
+    - Target Anomaly Ratio: ~10% (8% - 12%)
+    - Injected Types:
+      1. Impulse Spikes / Sudden Jumps (~3%)
+      2. Sensor Freezing / Flatlines (~3%)
+      3. Thermodynamic / Physical Inconsistencies (~2.5%)
+      4. Out-of-Bounds Extreme Telemetry (~1.5%)
+    """
+
+    def __init__(self, anomaly_rate: float = 0.10, random_state: int = 42):
+        self.anomaly_rate = anomaly_rate
+        self.random_state = random_state
+
+    def inject_anomalies(self, dataframe: pd.DataFrame) -> pd.DataFrame:
+        df = dataframe.copy()
+        np.random.seed(self.random_state)
+        n_rows = len(df)
+        total_anomalies = max(1, int(n_rows * self.anomaly_rate))
+
+        is_anomaly = np.zeros(n_rows, dtype=int)
+
+        # Disjoint random allocation of anomaly archetypes
+        permuted_indices = np.random.permutation(n_rows)
+        n_spike = int(0.30 * total_anomalies)
+        n_freeze = int(0.30 * total_anomalies)
+        n_inconsistent = int(0.25 * total_anomalies)
+        n_out_of_bounds = total_anomalies - (n_spike + n_freeze + n_inconsistent)
+
+        spike_indices = permuted_indices[:n_spike]
+        freeze_start_indices = permuted_indices[n_spike : n_spike + n_freeze]
+        inconsistent_indices = permuted_indices[n_spike + n_freeze : n_spike + n_freeze + n_inconsistent]
+        bounds_indices = permuted_indices[n_spike + n_freeze + n_inconsistent : total_anomalies]
+
+        # 1. Impulse Spikes
+        for idx in spike_indices:
+            sensor_choice = np.random.choice(["temp", "humidity", "pressure"])
+            if sensor_choice == "temp" and TEMPERATURE_COLUMN in df.columns:
+                jump = np.random.choice([-1, 1]) * np.random.uniform(12.0, 22.0)
+                df.at[idx, TEMPERATURE_COLUMN] = float(df.at[idx, TEMPERATURE_COLUMN]) + jump
+            elif sensor_choice == "humidity" and HUMIDITY_COLUMN in df.columns:
+                jump = np.random.choice([-1, 1]) * np.random.uniform(40.0, 60.0)
+                df.at[idx, HUMIDITY_COLUMN] = np.clip(float(df.at[idx, HUMIDITY_COLUMN]) + jump, 5.0, 95.0)
+            elif sensor_choice == "pressure" and PRESSURE_COLUMN in df.columns:
+                jump = np.random.choice([-1, 1]) * np.random.uniform(30.0, 60.0)
+                df.at[idx, PRESSURE_COLUMN] = float(df.at[idx, PRESSURE_COLUMN]) + jump
+            is_anomaly[idx] = 1
+
+        # 2. Sensor Freezing / Flatlines (repeat reading across 4-6 consecutive rows)
+        for start_idx in freeze_start_indices:
+            freeze_len = np.random.randint(4, 7)
+            end_idx = min(n_rows, start_idx + freeze_len)
+            target_sensor = np.random.choice([TEMPERATURE_COLUMN, HUMIDITY_COLUMN, PRESSURE_COLUMN])
+            if target_sensor in df.columns:
+                static_val = df.at[start_idx, target_sensor]
+                for r in range(start_idx, end_idx):
+                    df.at[r, target_sensor] = static_val
+                    is_anomaly[r] = 1
+
+        # 3. Thermodynamic / Physical Inconsistency
+        for idx in inconsistent_indices:
+            if TEMPERATURE_COLUMN in df.columns:
+                df.at[idx, TEMPERATURE_COLUMN] = float(np.random.uniform(42.0, 48.0))
+            if HUMIDITY_COLUMN in df.columns:
+                df.at[idx, HUMIDITY_COLUMN] = float(np.random.uniform(95.0, 99.0))
+            if PRESSURE_COLUMN in df.columns:
+                df.at[idx, PRESSURE_COLUMN] = float(np.random.uniform(810.0, 850.0))
+            is_anomaly[idx] = 1
+
+        # 4. Out-of-Bounds Extreme Violations
+        for idx in bounds_indices:
+            bound_type = np.random.choice(["temp_high", "temp_low", "humidity_high", "humidity_low"])
+            if bound_type == "temp_high" and TEMPERATURE_COLUMN in df.columns:
+                df.at[idx, TEMPERATURE_COLUMN] = float(np.random.uniform(58.0, 68.0))
+            elif bound_type == "temp_low" and TEMPERATURE_COLUMN in df.columns:
+                df.at[idx, TEMPERATURE_COLUMN] = float(np.random.uniform(-55.0, -42.0))
+            elif bound_type == "humidity_high" and HUMIDITY_COLUMN in df.columns:
+                df.at[idx, HUMIDITY_COLUMN] = float(np.random.uniform(105.0, 125.0))
+            elif bound_type == "humidity_low" and HUMIDITY_COLUMN in df.columns:
+                df.at[idx, HUMIDITY_COLUMN] = float(np.random.uniform(-20.0, -5.0))
+            is_anomaly[idx] = 1
+
+        df[TARGET_COLUMN] = is_anomaly
+        return df
+
+
 class DataTransformation:
     def __init__(
         self,
@@ -232,11 +319,11 @@ class DataTransformation:
         """
         Executes complete data transformation:
         1. Reads validated train and test datasets.
-        2. Fits complete feature engineering + scaling pipeline on training data.
-        3. Transforms training and testing datasets.
-        4. Handles target column if present (e.g., after anomaly injection).
+        2. Injects synthetic anomalies (~10% rate) to establish ground-truth is_anomaly benchmark.
+        3. Fits complete feature engineering + scaling pipeline on training data.
+        4. Transforms training and testing datasets using the exact fitted object.
         5. Saves fitted preprocessor.pkl using save_object.
-        6. Saves transformed arrays as train.npy and test.npy.
+        6. Saves transformed arrays with target labels as train.npy and test.npy.
         7. Returns DataTransformationArtifact.
         """
         try:
@@ -256,26 +343,32 @@ class DataTransformation:
             train_df = self.read_data(train_file_path)
             test_df = self.read_data(test_file_path)
 
-            # Separate target column if present
-            target_present = TARGET_COLUMN in train_df.columns
+            # Synthetic Anomaly Injection (ensuring ~10% ground-truth labels if not already injected)
+            if TARGET_COLUMN not in train_df.columns:
+                logging.info("Injecting synthetic anomalies into train and test datasets (~10% rate: spikes, flatlines, physics violations, bounds)")
+                injector_train = SyntheticAnomalyInjector(anomaly_rate=0.10, random_state=42)
+                injector_test = SyntheticAnomalyInjector(anomaly_rate=0.10, random_state=101)
+                train_df = injector_train.inject_anomalies(train_df)
+                test_df = injector_test.inject_anomalies(test_df)
 
-            if target_present:
-                logging.info(f"Target column '{TARGET_COLUMN}' detected in train dataset")
-                input_feature_train_df = train_df.drop(columns=[TARGET_COLUMN], axis=1)
-                target_feature_train_df = train_df[TARGET_COLUMN]
+            train_anom_cnt = int(train_df[TARGET_COLUMN].sum())
+            test_anom_cnt = int(test_df[TARGET_COLUMN].sum())
+            logging.info(
+                f"Train ground-truth anomalies: {train_anom_cnt}/{len(train_df)} ({train_df[TARGET_COLUMN].mean()*100:.2f}%)"
+            )
+            logging.info(
+                f"Test ground-truth anomalies: {test_anom_cnt}/{len(test_df)} ({test_df[TARGET_COLUMN].mean()*100:.2f}%)"
+            )
 
-                input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN], axis=1)
-                target_feature_test_df = test_df[TARGET_COLUMN]
-            else:
-                logging.info(f"Target column '{TARGET_COLUMN}' not present (unsupervised sensor stream)")
-                input_feature_train_df = train_df
-                target_feature_train_df = None
+            # Separate target labels from feature dataframes
+            input_feature_train_df = train_df.drop(columns=[TARGET_COLUMN], axis=1)
+            target_feature_train_arr = train_df[TARGET_COLUMN].values.astype(int)
 
-                input_feature_test_df = test_df
-                target_feature_test_df = None
+            input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN], axis=1)
+            target_feature_test_arr = test_df[TARGET_COLUMN].values.astype(int)
 
             # Dry-run feature engineering to discover post-engineering schema columns
-            engineer_preview = SensorFeatureEngineer().transform(input_feature_train_df.head(20))
+            engineer_preview = SensorFeatureEngineer().transform(input_feature_train_df.head(50))
             pipeline_obj = self.get_data_transformer_object(feature_engineered_df=engineer_preview)
 
             logging.info("Fitting preprocessing pipeline on training dataset")
@@ -284,13 +377,10 @@ class DataTransformation:
             logging.info("Transforming testing dataset using fitted pipeline")
             input_feature_test_arr = pipeline_obj.transform(input_feature_test_df)
 
-            # Assemble final transformed arrays
-            if target_present:
-                train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
-                test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
-            else:
-                train_arr = input_feature_train_arr
-                test_arr = input_feature_test_arr
+            # Assemble final transformed arrays with target column as the last column
+            train_arr = np.c_[input_feature_train_arr, target_feature_train_arr]
+            test_arr = np.c_[input_feature_test_arr, target_feature_test_arr]
+
 
             logging.info(f"Transformed train array shape: {train_arr.shape}")
             logging.info(f"Transformed test array shape: {test_arr.shape}")
