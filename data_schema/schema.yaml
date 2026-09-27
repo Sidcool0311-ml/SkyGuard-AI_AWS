@@ -1,0 +1,32 @@
+columns:
+  - time: object
+  - temperature_2m: float64
+  - relative_humidity_2m: float64
+  - surface_pressure: float64
+  - station: object
+
+numerical_columns:
+  - temperature_2m
+  - relative_humidity_2m
+  - surface_pressure
+
+categorical_columns:
+  - station
+
+mandatory_columns:
+  - time
+  - temperature_2m
+  - relative_humidity_2m
+  - surface_pressure
+  - station
+
+domain_value_range:
+  temperature_2m:
+    min: -60.0
+    max: 65.0
+  relative_humidity_2m:
+    min: 0.0
+    max: 100.0
+  surface_pressure:
+    min: 500.0
+    max: 1100.0

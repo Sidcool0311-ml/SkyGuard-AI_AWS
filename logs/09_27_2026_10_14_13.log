@@ -1,0 +1,39 @@
+[2026-09-27 10:14:17,801] INFO root: Starting training pipeline
+[2026-09-27 10:14:17,802] INFO root: Starting Data Ingestion
+[2026-09-27 10:14:26,245] INFO root: Collected data from MongoDb
+[2026-09-27 10:14:26,245] INFO root: pulled59520 rows,5 columns from MongoDb
+[2026-09-27 10:14:26,507] INFO root: performed split on data
+[2026-09-27 10:14:26,507] INFO root: acquired file path for train and test data
+[2026-09-27 10:14:26,665] INFO root: saved train and test datasets
+[2026-09-27 10:14:26,667] INFO root: Data ingestion completed successfully
+[2026-09-27 10:14:26,681] INFO root: Data Ingestion completed
+[2026-09-27 10:14:26,685] INFO root: Starting Data Validation
+[2026-09-27 10:14:26,688] INFO root: Initiating Data Validation Component
+[2026-09-27 10:14:26,688] INFO root: Reading train dataset: Artifacts\data_ingestion\ingested\train.csv
+[2026-09-27 10:14:26,688] INFO root: Reading test dataset: Artifacts\data_ingestion\ingested\test.csv
+[2026-09-27 10:14:26,826] INFO root: Required number of columns: 5
+[2026-09-27 10:14:26,827] INFO root: Dataframe column count: 5
+[2026-09-27 10:14:26,827] INFO root: Required number of columns: 5
+[2026-09-27 10:14:26,827] INFO root: Dataframe column count: 5
+[2026-09-27 10:14:26,910] INFO root: Drift report generated at: Artifacts\data_validation\drift_report\report.yaml
+[2026-09-27 10:14:26,910] INFO root: Data validation succeeded. Saving validated datasets.
+[2026-09-27 10:14:27,095] INFO root: Data Validation Artifact: DataValidationArtifact(validation_status=True, valid_train_file_path='Artifacts\\data_validation\\validated\\train.csv', valid_test_file_path='Artifacts\\data_validation\\validated\\test.csv', invalid_train_file_path=None, invalid_test_file_path=None, drift_report_file_path='Artifacts\\data_validation\\drift_report\\report.yaml')
+[2026-09-27 10:14:27,097] INFO root: Data Validation completed
+[2026-09-27 10:14:27,098] INFO root: Starting Data Transformation
+[2026-09-27 10:14:27,098] INFO root: Starting Data Transformation Component
+[2026-09-27 10:14:27,098] INFO root: Loading validated train dataset from: Artifacts\data_validation\validated\train.csv
+[2026-09-27 10:14:27,098] INFO root: Loading validated test dataset from: Artifacts\data_validation\validated\test.csv
+[2026-09-27 10:14:27,236] INFO root: Target column 'is_anomaly' not present (unsupervised sensor stream)
+[2026-09-27 10:14:27,386] INFO root: Initiating get_data_transformer_object
+[2026-09-27 10:14:27,386] INFO root: Identified 31 numerical features: ['temperature_2m', 'relative_humidity_2m', 'surface_pressure', 'sin_hour', 'cos_hour', 'sin_month', 'cos_month', 'sin_day_of_year', 'cos_day_of_year', 'temperature_2m_rolling_mean_3h', 'temperature_2m_rolling_std_3h', 'temperature_2m_rolling_mean_6h', 'temperature_2m_rolling_std_6h', 'relative_humidity_2m_rolling_mean_3h', 'relative_humidity_2m_rolling_std_3h', 'relative_humidity_2m_rolling_mean_6h', 'relative_humidity_2m_rolling_std_6h', 'surface_pressure_rolling_mean_3h', 'surface_pressure_rolling_std_3h', 'surface_pressure_rolling_mean_6h', 'surface_pressure_rolling_std_6h', 'delta_temperature_2m', 'abs_delta_temperature_2m', 'delta_relative_humidity_2m', 'abs_delta_relative_humidity_2m', 'delta_surface_pressure', 'abs_delta_surface_pressure', 'discomfort_index', 'dew_point_depression', 'temp_pressure_ratio', 'delta_temp_pressure_interaction']
+[2026-09-27 10:14:27,386] INFO root: Identified categorical features: ['station']
+[2026-09-27 10:14:27,386] INFO root: Created full preprocessing pipeline successfully
+[2026-09-27 10:14:27,386] INFO root: Fitting preprocessing pipeline on training dataset
+[2026-09-27 10:14:28,124] INFO root: Transforming testing dataset using fitted pipeline
+[2026-09-27 10:14:28,232] INFO root: Transformed train array shape: (47616, 36)
+[2026-09-27 10:14:28,232] INFO root: Transformed test array shape: (11904, 36)
+[2026-09-27 10:14:28,243] INFO root: Saved transformed train array to Artifacts\data_transformation\transformed\train.npy
+[2026-09-27 10:14:28,251] INFO root: Saved transformed test array to Artifacts\data_transformation\transformed\test.npy
+[2026-09-27 10:14:28,251] INFO root: Entered the save_object method of MainUtils class
+[2026-09-27 10:14:28,258] INFO root: Exited the save_object method of MainUtils class
+[2026-09-27 10:14:28,259] INFO root: Saved fitted preprocessor object to Artifacts\data_transformation\transformed_object\preprocessor.pkl

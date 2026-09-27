@@ -1,0 +1,21 @@
+[2026-09-27 10:02:49,785] INFO root: Starting training pipeline
+[2026-09-27 10:02:49,785] INFO root: Starting Data Ingestion
+[2026-09-27 10:03:00,531] INFO root: Collected data from MongoDb
+[2026-09-27 10:03:00,531] INFO root: pulled59520 rows,5 columns from MongoDb
+[2026-09-27 10:03:00,729] INFO root: performed split on data
+[2026-09-27 10:03:00,730] INFO root: acquired file path for train and test data
+[2026-09-27 10:03:00,882] INFO root: saved train and test datasets
+[2026-09-27 10:03:00,885] INFO root: Data ingestion completed successfully
+[2026-09-27 10:03:00,898] INFO root: Data Ingestion completed
+[2026-09-27 10:03:00,902] INFO root: Starting Data Validation
+[2026-09-27 10:03:00,905] INFO root: Initiating Data Validation Component
+[2026-09-27 10:03:00,906] INFO root: Reading train dataset: Artifacts\data_ingestion\ingested\train.csv
+[2026-09-27 10:03:00,906] INFO root: Reading test dataset: Artifacts\data_ingestion\ingested\test.csv
+[2026-09-27 10:03:01,000] INFO root: Required number of columns: 5
+[2026-09-27 10:03:01,000] INFO root: Dataframe column count: 5
+[2026-09-27 10:03:01,000] INFO root: Required number of columns: 5
+[2026-09-27 10:03:01,000] INFO root: Dataframe column count: 5
+[2026-09-27 10:03:01,035] INFO root: Drift report generated at: Artifacts\data_validation\drift_report\report.yaml
+[2026-09-27 10:03:01,036] INFO root: Data validation succeeded. Saving validated datasets.
+[2026-09-27 10:03:01,174] INFO root: Data Validation Artifact: DataValidationArtifact(validation_status=True, valid_train_file_path='Artifacts\\data_validation\\validated\\train.csv', valid_test_file_path='Artifacts\\data_validation\\validated\\test.csv', invalid_train_file_path=None, invalid_test_file_path=None, drift_report_file_path='Artifacts\\data_validation\\drift_report\\report.yaml')
+[2026-09-27 10:03:01,176] INFO root: Data Validation completed
