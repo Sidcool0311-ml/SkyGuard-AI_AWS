@@ -103,9 +103,15 @@ class AnomalyInjector:
             raise CustomException(e, sys)
 
     
-    def inject_all(self,df:pd.DataFrame):
+    def inject_all(self, df: pd.DataFrame) -> pd.DataFrame:
+
         try:
             df = df.copy()
+
+            # Force sensor columns to float so spike values with decimals fit
+            for col in SENSOR_COLUMNS:
+                df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+
             df["is_anomaly"] = 0
             df["anomaly_type"] = "normal"
 
@@ -118,7 +124,7 @@ class AnomalyInjector:
             logging.info(f"Anomaly injection complete. Distribution:\n{df['anomaly_type'].value_counts()}")
             return df
         except Exception as e:
-            raise CustomException(e,sys)
+         raise CustomException(e, sys)
 
 if __name__ == "__main__":
     try:

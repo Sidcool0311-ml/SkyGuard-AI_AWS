@@ -84,7 +84,11 @@ class DataIngestion:
             os.makedirs(dir_path, exist_ok=True)
             train_set.to_csv(self.data_ingestion_config.training_file_path, index=False)
             test_set.to_csv(self.data_ingestion_config.testing_file_path, index=False)
+
+           
+     
             logging.info("Saved contiguous chronological train and test datasets")
+
 
             return DataIngestionArtifact(
                 trained_file_path=self.data_ingestion_config.training_file_path,
@@ -92,8 +96,10 @@ class DataIngestion:
             )
 
         except Exception as e:
+            
             raise CustomException(e,sys)
-     
+ 
+
     def initiate_data_ingestion(self):
         try:
             dataframe = self.export_collection_as_df()

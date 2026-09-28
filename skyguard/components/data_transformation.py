@@ -156,6 +156,12 @@ class SyntheticAnomalyInjector:
 
     def inject_anomalies(self, dataframe: pd.DataFrame) -> pd.DataFrame:
         df = dataframe.copy()
+        
+        # Force sensor columns to float so decimal spike values fit
+        for col in [TEMPERATURE_COLUMN, HUMIDITY_COLUMN, PRESSURE_COLUMN]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").astype(float)
+
         np.random.seed(self.random_state)
         n_rows = len(df)
         total_anomalies = max(1, int(n_rows * self.anomaly_rate))
@@ -342,6 +348,10 @@ class DataTransformation:
 
             train_df = self.read_data(train_file_path)
             test_df = self.read_data(test_file_path)
+            # Sort FIRST so row order matches what SensorFeatureEngineer will produce
+            sort_cols = [STATION_COLUMN, TIME_COLUMN]
+            train_df = train_df.sort_values(by=sort_cols).reset_index(drop=True)
+            test_df = test_df.sort_values(by=sort_cols).reset_index(drop=True)
 
             # Synthetic Anomaly Injection (ensuring ~10% ground-truth labels if not already injected)
             if TARGET_COLUMN not in train_df.columns:
@@ -361,10 +371,10 @@ class DataTransformation:
             )
 
             # Separate target labels from feature dataframes
-            input_feature_train_df = train_df.drop(columns=[TARGET_COLUMN], axis=1)
+            input_feature_train_df = train_df.drop([TARGET_COLUMN], axis=1)
             target_feature_train_arr = train_df[TARGET_COLUMN].values.astype(int)
 
-            input_feature_test_df = test_df.drop(columns=[TARGET_COLUMN], axis=1)
+            input_feature_test_df = test_df.drop([TARGET_COLUMN], axis=1)
             target_feature_test_arr = test_df[TARGET_COLUMN].values.astype(int)
 
             # Dry-run feature engineering to discover post-engineering schema columns

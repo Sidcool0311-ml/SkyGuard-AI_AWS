@@ -1,16 +1,19 @@
 drift_significance_threshold: 0.05
-drifted_features: []
+drifted_features:
+- temperature_2m
+- relative_humidity_2m
+- surface_pressure
 metrics:
   relative_humidity_2m:
-    drift_detected: false
-    p_value: 0.22689515444635788
-    statistic: 0.010668682795698936
+    drift_detected: true
+    p_value: 0.0
+    statistic: 0.5066449833452138
   surface_pressure:
-    drift_detected: false
-    p_value: 0.3192796534944998
-    statistic: 0.009786626344086002
+    drift_detected: true
+    p_value: 0.0
+    statistic: 0.25416527981526893
   temperature_2m:
-    drift_detected: false
-    p_value: 0.1712552014059161
-    statistic: 0.011340725806451624
-overall_drift_status: false
+    drift_detected: true
+    p_value: 0.0
+    statistic: 0.29625172822596263
+overall_drift_status: true
