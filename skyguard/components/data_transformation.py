@@ -41,7 +41,37 @@ class SensorFeatureEngineer(BaseEstimator, TransformerMixin):
         self.station_col = station_col
 
     def fit(self, X, y=None):
-        return self
+        try:
+            df = X.copy() if isinstance(X, pd.DataFrame) else pd.DataFrame(X)
+            sensor_cols = [TEMPERATURE_COLUMN, HUMIDITY_COLUMN, PRESSURE_COLUMN]
+
+            self.station_baselines_ = {}
+
+            def compute_stats(series: pd.Series) -> dict:
+                vals = pd.to_numeric(series, errors="coerce").dropna()
+                if len(vals) == 0:
+                    return {"median": 0.0, "std": 1.0}
+                median = float(vals.median())
+                mad = float((vals - median).abs().median())
+                std = mad * 1.4826  # MAD-to-std conversion, robust to outliers
+                if std < 1e-6:
+                    std = float(vals.std()) if vals.std() > 1e-6 else 1.0
+                return {"median": median, "std": std}
+
+            # Global fallback baseline (used for unseen stations at inference time)
+            global_stats = {col: compute_stats(df[col]) for col in sensor_cols if col in df.columns}
+            self.station_baselines_["__global__"] = global_stats
+
+            # Per-station baselines
+            if self.station_col in df.columns:
+                for station, group in df.groupby(self.station_col):
+                    self.station_baselines_[station] = {
+                        col: compute_stats(group[col]) for col in sensor_cols if col in group.columns
+                    }
+
+            return self
+        except Exception as e:
+            raise CustomException(e, sys)
 
     def transform(self, X):
         try:
@@ -110,6 +140,25 @@ class SensorFeatureEngineer(BaseEstimator, TransformerMixin):
                         delta = df[col].diff().fillna(0.0)
                         df[f"delta_{col}"] = delta
                         df[f"abs_delta_{col}"] = delta.abs()
+            # 3b. Per-station robust z-score features (station-specific "how unusual is this reading")
+            for col in sensor_cols:
+              if col not in df.columns:
+                continue
+
+              global_stats = self.station_baselines_.get("__global__", {}).get(col, {"median": 0.0, "std": 1.0})
+
+              if self.station_col in df.columns:
+                    medians = df[self.station_col].map(
+                        lambda s: self.station_baselines_.get(s, {}).get(col, global_stats)["median"]
+                    )
+                    stds = df[self.station_col].map(
+                        lambda s: self.station_baselines_.get(s, {}).get(col, global_stats)["std"]
+                    )
+              else:
+                    medians = global_stats["median"]
+                    stds = global_stats["std"]
+
+              df[f"{col}_station_zscore"] = (df[col] - medians) / stds
 
             # 4. Cross-parameter consistency features
             temp = df.get(TEMPERATURE_COLUMN, pd.Series(0.0, index=df.index))
@@ -171,7 +220,7 @@ class SyntheticAnomalyInjector:
         # Disjoint random allocation of anomaly archetypes
         permuted_indices = np.random.permutation(n_rows)
         n_spike = int(0.30 * total_anomalies)
-        n_freeze = int(0.30 * total_anomalies)
+        n_freeze = int(0.30 * total_anomalies/5)
         n_inconsistent = int(0.25 * total_anomalies)
         n_out_of_bounds = total_anomalies - (n_spike + n_freeze + n_inconsistent)
 
@@ -378,7 +427,7 @@ class DataTransformation:
             target_feature_test_arr = test_df[TARGET_COLUMN].values.astype(int)
 
             # Dry-run feature engineering to discover post-engineering schema columns
-            engineer_preview = SensorFeatureEngineer().transform(input_feature_train_df.head(50))
+            engineer_preview = SensorFeatureEngineer().fit_transform(input_feature_train_df.head(50))
             pipeline_obj = self.get_data_transformer_object(feature_engineered_df=engineer_preview)
 
             logging.info("Fitting preprocessing pipeline on training dataset")

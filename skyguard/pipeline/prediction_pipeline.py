@@ -2,7 +2,7 @@ import os
 import sys
 import numpy as np
 import pandas as pd
-from typing import Union, List, Dict, Any, Optional
+from typing import Tuple, Union, List, Dict, Any, Optional
 
 from skyguard.constant.training_pipeline import (
     ARTIFACT_DIR,
@@ -85,7 +85,6 @@ class PredictionPipeline:
             self._load_artifacts()
         except Exception as e:
             raise CustomException(e, sys)
-
     def _load_artifacts(self):
         """
         Loads models, pipelines, and explainers with graceful status logging.
@@ -99,8 +98,19 @@ class PredictionPipeline:
                 logging.warning(f"Preprocessor file not found at {self.preprocessor_file_path}")
 
             if os.path.exists(self.model_file_path):
-                self.model = load_object(self.model_file_path)
-                logging.info(f"Loaded champion model from {self.model_file_path}")
+                loaded = load_object(self.model_file_path)
+                if isinstance(loaded, dict) and "model" in loaded:
+                    self.model = loaded["model"]
+                    self.threshold = loaded.get("threshold")
+                    self.score_std = loaded.get("score_std", 1.0)
+                    self.model_feature_names = loaded.get("feature_names", [])
+                else:
+                    self.model = loaded
+                    self.threshold = None
+                    self.score_std = 1.0
+                logging.info(
+                    f"Loaded champion model from {self.model_file_path}, threshold={self.threshold}"
+                )
             else:
                 logging.warning(f"Model file not found at {self.model_file_path}")
 
@@ -123,6 +133,7 @@ class PredictionPipeline:
 
         except Exception as e:
             raise CustomException(e, sys)
+
 
     def _extract_feature_names(self):
         """Extracts human-readable feature names from the loaded preprocessor."""
@@ -299,35 +310,44 @@ class PredictionPipeline:
             if STATION_COLUMN not in df.columns:
                 df[STATION_COLUMN] = "unknown_station"
 
+            results=[]
+
             # Transform raw features using end-to-end preprocessor pipeline
             transformed_features = self.preprocessor.transform(df)
 
-            # Raw prediction: -1 = Anomaly, 1 = Normal
-            raw_predictions = self.model.predict(transformed_features)
-
+            
             # Continuous anomaly scores via decision function
+            # Same score convention as training: higher = more anomalous
+           # Same score convention as training: higher = more anomalous
             if hasattr(self.model, "decision_function"):
-                decision_scores = self.model.decision_function(transformed_features)
-                # Map decision function to normalized anomaly score in [0.0, 1.0]
-                # Lower decision score = more anomalous
-                anomaly_scores = 1.0 / (1.0 + np.exp(decision_scores * 4.0))
+                anomaly_scores_raw = -self.model.decision_function(transformed_features)
             else:
-                anomaly_scores = np.where(raw_predictions == -1, 0.85, 0.15)
+                anomaly_scores_raw = -self.model.score_samples(transformed_features)
 
-            results = []
+            # Decide anomaly using the CALIBRATED threshold from training, not sklearn's default .predict()
+            if self.threshold is not None:
+                is_anomaly_arr = anomaly_scores_raw >= self.threshold
+            else:
+                is_anomaly_arr = (self.model.predict(transformed_features) == -1)
+
+            # Normalize using the FIXED std from training (stable even for a single new row)
+            threshold_ref = self.threshold if self.threshold is not None else 0.0
+            anomaly_scores = 1.0 / (1.0 + np.exp(-(anomaly_scores_raw - threshold_ref) / self.score_std))
 
             for i in range(len(df)):
                 raw_row = raw_df.iloc[i]
                 transformed_row = transformed_features[i]
-                is_anomaly = bool(raw_predictions[i] == -1)
+                is_anomaly = bool(is_anomaly_arr[i])
                 score = float(anomaly_scores[i])
 
-                # Severity classification
-                if score >= 0.75:
+               # Severity classification — based on std-deviations from threshold, not compressed sigmoid score
+                std_from_threshold = (anomaly_scores_raw[i] - threshold_ref) / self.score_std
+
+                if std_from_threshold >= 2.0:
                     severity = "CRITICAL"
-                elif score >= 0.55:
+                elif std_from_threshold >= 1.0:
                     severity = "WARNING"
-                elif score >= 0.40:
+                elif std_from_threshold >= 0.0:
                     severity = "ELEVATED"
                 else:
                     severity = "NORMAL"

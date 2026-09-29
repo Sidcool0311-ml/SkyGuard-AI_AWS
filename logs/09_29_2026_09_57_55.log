@@ -1,0 +1,67 @@
+[2026-09-29 09:57:58,538] INFO root: Starting training pipeline
+[2026-09-29 09:57:58,539] INFO root: Starting Data Ingestion
+[2026-09-29 09:58:05,527] INFO root: Collected data from MongoDb
+[2026-09-29 09:58:05,527] INFO root: pulled59520 rows,5 columns from MongoDb
+[2026-09-29 09:58:05,696] INFO root: Performing chronological time-series split per station
+[2026-09-29 09:58:05,780] INFO root: Train split rows: 47615, Test split rows: 11905
+[2026-09-29 09:58:05,926] INFO root: Saved contiguous chronological train and test datasets
+[2026-09-29 09:58:05,933] INFO root: Data ingestion completed successfully
+[2026-09-29 09:58:05,948] INFO root: Data Ingestion completed
+[2026-09-29 09:58:05,948] INFO root: Starting Data Validation
+[2026-09-29 09:58:05,951] INFO root: Initiating Data Validation Component
+[2026-09-29 09:58:05,951] INFO root: Reading train dataset: Artifacts\data_ingestion\ingested\train.csv
+[2026-09-29 09:58:05,951] INFO root: Reading test dataset: Artifacts\data_ingestion\ingested\test.csv
+[2026-09-29 09:58:06,036] INFO root: Required number of columns: 5
+[2026-09-29 09:58:06,036] INFO root: Dataframe column count: 5
+[2026-09-29 09:58:06,036] INFO root: Required number of columns: 5
+[2026-09-29 09:58:06,036] INFO root: Dataframe column count: 5
+[2026-09-29 09:58:06,064] INFO root: Drift report generated at: Artifacts\data_validation\drift_report\report.yaml
+[2026-09-29 09:58:06,064] WARNING root: Data drift detected between training and testing sets.
+[2026-09-29 09:58:06,065] INFO root: Data validation succeeded. Saving validated datasets.
+[2026-09-29 09:58:06,225] INFO root: Data Validation Artifact: DataValidationArtifact(validation_status=True, valid_train_file_path='Artifacts\\data_validation\\validated\\train.csv', valid_test_file_path='Artifacts\\data_validation\\validated\\test.csv', invalid_train_file_path=None, invalid_test_file_path=None, drift_report_file_path='Artifacts\\data_validation\\drift_report\\report.yaml')
+[2026-09-29 09:58:06,226] INFO root: Data Validation completed
+[2026-09-29 09:58:06,227] INFO root: Starting Data Transformation
+[2026-09-29 09:58:06,227] INFO root: Starting Data Transformation Component
+[2026-09-29 09:58:06,227] INFO root: Loading validated train dataset from: Artifacts\data_validation\validated\train.csv
+[2026-09-29 09:58:06,227] INFO root: Loading validated test dataset from: Artifacts\data_validation\validated\test.csv
+[2026-09-29 09:58:06,349] INFO root: Injecting synthetic anomalies into train and test datasets (~10% rate: spikes, flatlines, physics violations, bounds)
+[2026-09-29 09:58:06,628] INFO root: Train ground-truth anomalies: 5805/47615 (12.19%)
+[2026-09-29 09:58:06,628] INFO root: Test ground-truth anomalies: 1442/11905 (12.11%)
+[2026-09-29 09:58:06,678] INFO root: Initiating get_data_transformer_object
+[2026-09-29 09:58:06,678] INFO root: Identified 34 numerical features: ['temperature_2m', 'relative_humidity_2m', 'surface_pressure', 'sin_hour', 'cos_hour', 'sin_month', 'cos_month', 'sin_day_of_year', 'cos_day_of_year', 'temperature_2m_rolling_mean_3h', 'temperature_2m_rolling_std_3h', 'temperature_2m_rolling_mean_6h', 'temperature_2m_rolling_std_6h', 'relative_humidity_2m_rolling_mean_3h', 'relative_humidity_2m_rolling_std_3h', 'relative_humidity_2m_rolling_mean_6h', 'relative_humidity_2m_rolling_std_6h', 'surface_pressure_rolling_mean_3h', 'surface_pressure_rolling_std_3h', 'surface_pressure_rolling_mean_6h', 'surface_pressure_rolling_std_6h', 'delta_temperature_2m', 'abs_delta_temperature_2m', 'delta_relative_humidity_2m', 'abs_delta_relative_humidity_2m', 'delta_surface_pressure', 'abs_delta_surface_pressure', 'temperature_2m_station_zscore', 'relative_humidity_2m_station_zscore', 'surface_pressure_station_zscore', 'discomfort_index', 'dew_point_depression', 'temp_pressure_ratio', 'delta_temp_pressure_interaction']
+[2026-09-29 09:58:06,678] INFO root: Identified categorical features: ['station']
+[2026-09-29 09:58:06,678] INFO root: Created full preprocessing pipeline successfully
+[2026-09-29 09:58:06,678] INFO root: Fitting preprocessing pipeline on training dataset
+[2026-09-29 09:58:07,403] INFO root: Transforming testing dataset using fitted pipeline
+[2026-09-29 09:58:07,531] INFO root: Transformed train array shape: (47615, 40)
+[2026-09-29 09:58:07,531] INFO root: Transformed test array shape: (11905, 40)
+[2026-09-29 09:58:07,547] INFO root: Saved transformed train array to Artifacts\data_transformation\transformed\train.npy
+[2026-09-29 09:58:07,551] INFO root: Saved transformed test array to Artifacts\data_transformation\transformed\test.npy
+[2026-09-29 09:58:07,552] INFO root: Entered the save_object method of MainUtils class
+[2026-09-29 09:58:07,557] INFO root: Exited the save_object method of MainUtils class
+[2026-09-29 09:58:07,558] INFO root: Saved fitted preprocessor object to Artifacts\data_transformation\transformed_object\preprocessor.pkl
+[2026-09-29 09:58:07,558] INFO root: Data Transformation Artifact created: DataTransformationArtifact(transformed_object_file_path='Artifacts\\data_transformation\\transformed_object\\preprocessor.pkl', transformed_train_file_path='Artifacts\\data_transformation\\transformed\\train.npy', transformed_test_file_path='Artifacts\\data_transformation\\transformed\\test.npy')
+[2026-09-29 09:58:07,562] INFO root: Data Transformation completed
+[2026-09-29 09:58:07,563] INFO root: Starting Model Training
+[2026-09-29 09:58:07,563] INFO root: Starting Model Trainer Component
+[2026-09-29 09:58:07,658] INFO root: x_train shape: (47615, 39)
+[2026-09-29 09:58:07,658] INFO root: x_test shape: (11905, 39)
+[2026-09-29 09:58:07,658] INFO root: Training anomalies: 5805 (12.19%)
+[2026-09-29 09:58:07,658] INFO root: Testing anomalies: 1442 (12.11%)
+[2026-09-29 09:58:07,658] INFO root: Training candidate model: IsolationForest
+[2026-09-29 09:58:11,229] INFO root: IsolationForest: {'anomaly_ratio_test': 0.1082, 'threshold': 0.0091, 'calibration_score': 0.9214, 'mean_anomaly_score': -0.0455, 'std_anomaly_score': 0.0471, 'precision': 0.58, 'recall': 0.518, 'f1_score': 0.5473, 'roc_auc': 0.8266, 'pr_auc': 0.5853}
+[2026-09-29 09:58:11,229] INFO root: Training candidate model: OneClassSVM
+[2026-09-29 10:00:24,413] INFO root: OneClassSVM: {'anomaly_ratio_test': 0.2221, 'threshold': -45.1334, 'calibration_score': 0.295, 'mean_anomaly_score': 50.4904, 'std_anomaly_score': 380.0149, 'precision': 0.4141, 'recall': 0.7594, 'f1_score': 0.536, 'roc_auc': 0.8461, 'pr_auc': 0.4606}
+[2026-09-29 10:00:24,413] INFO root: Training candidate model: LocalOutlierFactor
+[2026-09-29 10:00:40,923] INFO root: LocalOutlierFactor: {'anomaly_ratio_test': 0.9899, 'threshold': -0.3507, 'calibration_score': 0.0001, 'mean_anomaly_score': 0.0016, 'std_anomaly_score': 0.3736, 'precision': 0.1195, 'recall': 0.9764, 'f1_score': 0.2129, 'roc_auc': 0.3896, 'pr_auc': 0.1397}
+[2026-09-29 10:00:40,923] INFO root: Champion model: IsolationForest | F1: 0.5473
+[2026-09-29 10:00:40,925] INFO root: Entered the save_object method of MainUtils class
+[2026-09-29 10:00:41,030] INFO root: Exited the save_object method of MainUtils class
+[2026-09-29 10:00:41,030] INFO root: Saved model package: IsolationForest
+[2026-09-29 10:00:41,030] INFO root: Saved threshold: 0.0091
+[2026-09-29 10:00:42,578] INFO root: Entered the save_object method of MainUtils class
+[2026-09-29 10:00:42,709] INFO root: Exited the save_object method of MainUtils class
+[2026-09-29 10:00:42,721] INFO root: Entered the save_object method of MainUtils class
+[2026-09-29 10:00:42,754] INFO root: Exited the save_object method of MainUtils class
+[2026-09-29 10:00:42,755] INFO root: Model Trainer Artifact successfully generated.
+[2026-09-29 10:00:42,759] INFO root: Model Training completed

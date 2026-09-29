@@ -1,6 +1,0 @@
-[2026-09-28 21:56:03,200] INFO root: Starting training pipeline
-[2026-09-28 21:56:03,200] INFO root: Starting Data Ingestion
-[2026-09-28 21:56:10,116] INFO root: Collected data from MongoDb
-[2026-09-28 21:56:10,117] INFO root: pulled59520 rows,5 columns from MongoDb
-[2026-09-28 21:56:10,292] INFO root: Performing chronological time-series split per station
-[2026-09-28 21:56:10,377] INFO root: Train split rows: 47615, Test split rows: 11905
