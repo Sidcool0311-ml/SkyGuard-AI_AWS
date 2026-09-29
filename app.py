@@ -32,6 +32,20 @@ from skyguard.logger.logger import logging as sky_logger
 # ── App setup ────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 CORS(app)  # Allow all origins — tighten in production with origins=[...]
+@app.route("/", methods=["GET"])
+def home():
+    return jsonify({
+        "name": "SkyGuardAI",
+        "status": "running",
+        "message": "SkyGuardAI Flask API is live!",
+        "endpoints": {
+            "health": "/health",
+            "stations": "/stations",
+            "predict": "/predict",
+            "ingest": "/ingest",
+            "train": "/train"
+        }
+    }), 200
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
