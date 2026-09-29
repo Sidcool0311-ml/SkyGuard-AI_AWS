@@ -1,10 +1,17 @@
 """
 SkyGuardAI — Flask Backend API
 ================================
-Endpoints
----------
+Pages (Frontend)
+-----------------
+GET  /                  → Beautiful home page with interactive 3-D Earth.
+GET  /dashboard         → Live station dashboard (charts + station grid).
+GET  /predict-ui        → ML anomaly prediction interface.
+
+API Endpoints
+--------------
 GET  /health            → Health-check; confirms model artefacts are loaded.
 GET  /stations          → Lists all configured monitoring stations.
+GET  /station-readings  → Live Open-Meteo readings for all stations (dashboard).
 POST /predict           → Runs anomaly detection on incoming sensor readings.
 POST /ingest            → Fetches fresh Open-Meteo data and pushes to MongoDB.
 POST /train             → Kicks off the full 4-stage training pipeline.
@@ -17,7 +24,7 @@ import logging
 import traceback
 from datetime import datetime
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
 
 # ── Environment ──────────────────────────────────────────────────────────────
@@ -30,22 +37,8 @@ from skyguard.exception.exception import CustomException
 from skyguard.logger.logger import logging as sky_logger
 
 # ── App setup ────────────────────────────────────────────────────────────────
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates", static_folder="static")
 CORS(app)  # Allow all origins — tighten in production with origins=[...]
-@app.route("/", methods=["GET"])
-def home():
-    return jsonify({
-        "name": "SkyGuardAI",
-        "status": "running",
-        "message": "SkyGuardAI Flask API is live!",
-        "endpoints": {
-            "health": "/health",
-            "stations": "/stations",
-            "predict": "/predict",
-            "ingest": "/ingest",
-            "train": "/train"
-        }
-    }), 200
 
 # ── Logging ──────────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -76,6 +69,98 @@ def _get_pipeline() -> PredictionPipeline:
         _pipeline = PredictionPipeline()
         log.info("PredictionPipeline ready.")
     return _pipeline
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  Frontend page routes
+# ═══════════════════════════════════════════════════════════════════════════
+@app.route("/", methods=["GET"])
+def home():
+    """Serve the beautiful SkyGuard AI home page with interactive 3-D Earth."""
+    return render_template("index.html")
+
+
+@app.route("/dashboard", methods=["GET"])
+def dashboard():
+    """Serve the live station dashboard page."""
+    return render_template("dashboard.html")
+
+
+@app.route("/predict-ui", methods=["GET"])
+def predict_ui():
+    """Serve the ML anomaly prediction UI page."""
+    return render_template("predict.html")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+#  GET /station-readings  — live sensor data for the dashboard
+# ═══════════════════════════════════════════════════════════════════════════
+@app.route("/station-readings", methods=["GET"])
+def station_readings():
+    """
+    Fetches the most recent hourly reading for each station directly from
+    the Open-Meteo API and returns it as a flat dict keyed by station name.
+
+    Response body
+    -------------
+    {
+      "delhi": {
+        "temperature_2m": 29.4,
+        "relative_humidity_2m": 62,
+        "surface_pressure": 990.1,
+        "label": "Delhi",
+        "time": "2026-09-29T20:00"
+      },
+      ...
+    }
+    """
+    try:
+        import requests as http_requests
+
+        HOURLY_FIELDS = "temperature_2m,relative_humidity_2m,surface_pressure"
+        result: dict = {}
+
+        for key, meta in STATIONS.items():
+            url = (
+                f"https://api.open-meteo.com/v1/forecast"
+                f"?latitude={meta['latitude']}"
+                f"&longitude={meta['longitude']}"
+                f"&hourly={HOURLY_FIELDS}"
+                f"&forecast_days=1"
+            )
+            try:
+                resp   = http_requests.get(url, timeout=10)
+                resp.raise_for_status()
+                data   = resp.json()
+                hourly = data.get("hourly", {})
+
+                times  = hourly.get("time", [])
+                temps  = hourly.get("temperature_2m", [])
+                hums   = hourly.get("relative_humidity_2m", [])
+                press  = hourly.get("surface_pressure", [])
+
+                # Pick the most recent non-null reading
+                idx = len(times) - 1
+                while idx >= 0 and (temps[idx] is None or hums[idx] is None or press[idx] is None):
+                    idx -= 1
+
+                if idx >= 0:
+                    result[key] = {
+                        "time":                  times[idx],
+                        "temperature_2m":        temps[idx],
+                        "relative_humidity_2m":  hums[idx],
+                        "surface_pressure":      press[idx],
+                        "label":                 meta["label"],
+                    }
+            except Exception as e:
+                log.warning(f"[/station-readings] Could not fetch {key}: {e}")
+
+        return jsonify(result), 200
+
+    except Exception as exc:
+        log.error(f"[/station-readings] Error:\n{traceback.format_exc()}")
+        return jsonify({"error": str(exc)}), 500
+
 
 
 # ═══════════════════════════════════════════════════════════════════════════

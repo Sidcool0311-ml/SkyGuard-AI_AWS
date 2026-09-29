@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyGuard AI — ML Anomaly Predictor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="predict-body">
+
+  <!-- ── Navigation ─────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-logo">🛡️</span>
+      <span class="nav-title">SkyGuard<span class="accent">AI</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/predict-ui" class="nav-link active">ML Predict</a>
+    </div>
+    <div class="nav-status" id="healthStatus">
+      <span class="status-dot"></span>
+      <span class="status-text">Connecting…</span>
+    </div>
+  </nav>
+
+  <div class="predict-layout">
+
+    <!-- ── Left: Input Form ───────────────────────────────────── -->
+    <div class="predict-panel">
+      <div class="predict-panel-header">
+        <h1 class="predict-title">🤖 Anomaly Detector</h1>
+        <p class="predict-subtitle">Feed sensor readings — the Isolation Forest model will classify and explain any atmospheric anomalies.</p>
+      </div>
+
+      <!-- Model status banner -->
+      <div class="model-status-banner" id="modelBanner">
+        <span id="modelBannerIcon">⏳</span>
+        <span id="modelBannerText">Checking model artefacts…</span>
+      </div>
+
+      <!-- Form -->
+      <form class="predict-form" id="predictForm">
+
+        <div class="form-group">
+          <label class="form-label">📍 Station</label>
+          <select class="form-input" id="fStation" name="station">
+            <option value="delhi_2025">Delhi</option>
+            <option value="mumbai_2025">Mumbai</option>
+            <option value="jodhpur_2025">Jodhpur</option>
+            <option value="lucknow_2025">Lucknow</option>
+            <option value="kochi_2025">Kochi</option>
+            <option value="manali_2025">Manali</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">📅 Timestamp</label>
+          <input class="form-input" type="datetime-local" id="fTime" name="time" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">🌡️ Temperature (°C)</label>
+          <div class="slider-wrapper">
+            <input type="range" class="slider" id="fTempSlider" min="-40" max="55" step="0.5" value="28.5" />
+            <input type="number" class="form-input num-input" id="fTemp" name="temperature_2m" value="28.5" step="0.1" min="-40" max="55" />
+          </div>
+          <div class="slider-labels"><span>-40°C</span><span>55°C</span></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">💧 Relative Humidity (%)</label>
+          <div class="slider-wrapper">
+            <input type="range" class="slider" id="fHumSlider" min="0" max="100" step="1" value="62" />
+            <input type="number" class="form-input num-input" id="fHum" name="relative_humidity_2m" value="62" step="1" min="0" max="100" />
+          </div>
+          <div class="slider-labels"><span>0%</span><span>100%</span></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">🌬️ Surface Pressure (hPa)</label>
+          <div class="slider-wrapper">
+            <input type="range" class="slider" id="fPresSlider" min="500" max="1100" step="1" value="988" />
+            <input type="number" class="form-input num-input" id="fPres" name="surface_pressure" value="988" step="0.1" min="500" max="1100" />
+          </div>
+          <div class="slider-labels"><span>500 hPa</span><span>1100 hPa</span></div>
+        </div>
+
+        <!-- Quick presets -->
+        <div class="presets-row">
+          <span class="presets-label">Quick Presets:</span>
+          <button type="button" class="preset-btn" data-temp="28.5" data-hum="62" data-pres="988">✅ Normal</button>
+          <button type="button" class="preset-btn" data-temp="49.8" data-hum="12" data-pres="988">🌡️ Heat Spike</button>
+          <button type="button" class="preset-btn" data-temp="38" data-hum="99" data-pres="820">⛈️ Storm</button>
+          <button type="button" class="preset-btn" data-temp="5" data-hum="90" data-pres="1050">🏔️ Mountain</button>
+        </div>
+
+        <button type="submit" class="btn btn-primary full-width" id="predictBtn">
+          <span id="predictBtnText">🚀 Run Anomaly Detection</span>
+        </button>
+      </form>
+
+      <!-- Batch testing -->
+      <div class="batch-section">
+        <h3 class="batch-title">📋 Batch Test</h3>
+        <p class="batch-desc">Paste JSON array of readings or run all 3 demo samples at once.</p>
+        <textarea class="batch-input" id="batchInput" placeholder='[{"temperature_2m": 28.5, "relative_humidity_2m": 62, "surface_pressure": 988, "station": "delhi_2025", "time": "2026-01-01T12:00"}]'></textarea>
+        <button class="btn btn-secondary full-width" id="batchBtn">📦 Run Batch Prediction</button>
+      </div>
+    </div>
+
+    <!-- ── Right: Results ─────────────────────────────────────── -->
+    <div class="results-panel" id="resultsPanel">
+      <!-- Placeholder when no result -->
+      <div class="results-placeholder" id="resultsPlaceholder">
+        <div class="placeholder-icon">🎯</div>
+        <h3>Ready to Detect</h3>
+        <p>Fill in the sensor readings on the left and click <strong>Run Anomaly Detection</strong> to see the AI's analysis here.</p>
+        <div class="placeholder-features">
+          <div class="pf-item">🔬 Isolation Forest scoring</div>
+          <div class="pf-item">📊 SHAP feature importance</div>
+          <div class="pf-item">🏷️ Anomaly classification</div>
+          <div class="pf-item">📝 Human-readable reason</div>
+        </div>
+      </div>
+
+      <!-- Single result card (hidden until prediction) -->
+      <div class="result-content" id="resultContent" style="display:none">
+
+        <!-- Severity header -->
+        <div class="severity-header" id="severityHeader">
+          <div class="severity-badge" id="severityBadge">NORMAL</div>
+          <div class="result-station-time">
+            <span id="resultStation">Station</span>
+            <span id="resultTime">Time</span>
+          </div>
+        </div>
+
+        <!-- Anomaly score gauge -->
+        <div class="gauge-section">
+          <h3 class="gauge-title">Anomaly Score</h3>
+          <div class="gauge-container">
+            <canvas id="gaugeChart" width="220" height="120"></canvas>
+            <div class="gauge-center-text" id="gaugeScore">0.00</div>
+          </div>
+        </div>
+
+        <!-- Sensor readings -->
+        <div class="readings-section">
+          <h3 class="readings-title">📊 Sensor Readings</h3>
+          <div class="readings-grid">
+            <div class="reading-card">
+              <div class="reading-icon">🌡️</div>
+              <div class="reading-val" id="rTemp">—</div>
+              <div class="reading-label">Temp (°C)</div>
+            </div>
+            <div class="reading-card">
+              <div class="reading-icon">💧</div>
+              <div class="reading-val" id="rHum">—</div>
+              <div class="reading-label">Humidity (%)</div>
+            </div>
+            <div class="reading-card">
+              <div class="reading-icon">🌬️</div>
+              <div class="reading-val" id="rPres">—</div>
+              <div class="reading-label">Pressure (hPa)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Anomaly type & reason -->
+        <div class="anomaly-details" id="anomalyDetails">
+          <div class="anomaly-type-row">
+            <span class="ad-label">Type:</span>
+            <span class="ad-val" id="anomalyType">—</span>
+          </div>
+          <div class="anomaly-reason-row">
+            <span class="ad-label">Reason:</span>
+            <p class="ad-reason" id="anomalyReason">—</p>
+          </div>
+        </div>
+
+        <!-- Feature contributions -->
+        <div class="contributions-section" id="contributionsSection" style="display:none">
+          <h3 class="contributions-title">🔍 Top Contributing Features</h3>
+          <div class="chart-wrapper small-chart">
+            <canvas id="featuresChart"></canvas>
+          </div>
+          <div class="contributions-list" id="contributionsList"></div>
+        </div>
+
+      </div>
+
+      <!-- Batch results table -->
+      <div class="batch-results" id="batchResults" style="display:none">
+        <h3 class="batch-results-title">📋 Batch Results</h3>
+        <div class="table-container">
+          <table class="results-table" id="batchTable">
+            <thead>
+              <tr>
+                <th>Station</th>
+                <th>Time</th>
+                <th>Temp°C</th>
+                <th>Humidity%</th>
+                <th>Pressure</th>
+                <th>Score</th>
+                <th>Severity</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody id="batchTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="/static/js/predict.js"></script>
+</body>
+</html>

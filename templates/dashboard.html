@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyGuard AI — Live Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body class="dash-body">
+
+  <!-- ── Navigation ─────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-logo">🛡️</span>
+      <span class="nav-title">SkyGuard<span class="accent">AI</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link">Home</a>
+      <a href="/dashboard" class="nav-link active">Dashboard</a>
+      <a href="/predict-ui" class="nav-link">ML Predict</a>
+    </div>
+    <div class="nav-status" id="healthStatus">
+      <span class="status-dot"></span>
+      <span class="status-text">Connecting…</span>
+    </div>
+  </nav>
+
+  <!-- ── Dashboard Header ────────────────────────────────────── -->
+  <div class="dash-header">
+    <div class="dash-title-row">
+      <h1 class="dash-title">📊 Live Station Monitor</h1>
+      <div class="dash-controls">
+        <button class="btn-icon" id="refreshBtn" title="Refresh Data">🔄</button>
+        <select class="select-styled" id="stationFilter">
+          <option value="all">All Stations</option>
+          <option value="delhi">Delhi</option>
+          <option value="mumbai">Mumbai</option>
+          <option value="jodhpur">Jodhpur</option>
+          <option value="lucknow">Lucknow</option>
+          <option value="kochi">Kochi</option>
+          <option value="manali">Manali</option>
+        </select>
+        <div class="live-badge">🔴 LIVE</div>
+      </div>
+    </div>
+    <p class="dash-subtitle">Real-time atmospheric sensor readings from 6 monitoring stations across India.</p>
+    <div class="last-updated" id="lastUpdated">Last updated: —</div>
+  </div>
+
+  <!-- ── Summary KPI cards ───────────────────────────────────── -->
+  <div class="kpi-row" id="kpiRow">
+    <div class="kpi-card" id="kpi-temp">
+      <div class="kpi-icon">🌡️</div>
+      <div class="kpi-val" id="kpiTemp">—</div>
+      <div class="kpi-label">Avg Temperature (°C)</div>
+      <div class="kpi-sub" id="kpiTempRange">—</div>
+    </div>
+    <div class="kpi-card" id="kpi-hum">
+      <div class="kpi-icon">💧</div>
+      <div class="kpi-val" id="kpiHum">—</div>
+      <div class="kpi-label">Avg Humidity (%)</div>
+      <div class="kpi-sub" id="kpiHumRange">—</div>
+    </div>
+    <div class="kpi-card" id="kpi-pres">
+      <div class="kpi-icon">🌬️</div>
+      <div class="kpi-val" id="kpiPres">—</div>
+      <div class="kpi-label">Avg Pressure (hPa)</div>
+      <div class="kpi-sub" id="kpiPresRange">—</div>
+    </div>
+    <div class="kpi-card anomaly-kpi" id="kpi-anomaly">
+      <div class="kpi-icon">🚨</div>
+      <div class="kpi-val" id="kpiAnomalies">—</div>
+      <div class="kpi-label">Anomalies Detected</div>
+      <div class="kpi-sub" id="kpiAnomalySub">Across all stations</div>
+    </div>
+  </div>
+
+  <!-- ── Main Grid ──────────────────────────────────────────── -->
+  <div class="dash-grid">
+
+    <!-- Station Cards ──────────────────────────────────────── -->
+    <div class="dash-panel full-width">
+      <h2 class="panel-title">🗺️ Station Status Grid</h2>
+      <div class="station-grid" id="stationGrid">
+        <!-- injected by JS -->
+        <div class="station-card-skeleton"></div>
+        <div class="station-card-skeleton"></div>
+        <div class="station-card-skeleton"></div>
+        <div class="station-card-skeleton"></div>
+        <div class="station-card-skeleton"></div>
+        <div class="station-card-skeleton"></div>
+      </div>
+    </div>
+
+    <!-- Temperature Chart ──────────────────────────────────── -->
+    <div class="dash-panel">
+      <h2 class="panel-title">🌡️ Temperature by Station</h2>
+      <div class="chart-wrapper">
+        <canvas id="tempChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Humidity Chart ─────────────────────────────────────── -->
+    <div class="dash-panel">
+      <h2 class="panel-title">💧 Humidity by Station</h2>
+      <div class="chart-wrapper">
+        <canvas id="humChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Pressure Chart ─────────────────────────────────────── -->
+    <div class="dash-panel">
+      <h2 class="panel-title">🌬️ Surface Pressure</h2>
+      <div class="chart-wrapper">
+        <canvas id="presChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Anomaly Timeline ───────────────────────────────────── -->
+    <div class="dash-panel">
+      <h2 class="panel-title">📈 Anomaly Score Radar</h2>
+      <div class="chart-wrapper">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Live Feed ──────────────────────────────────────────── -->
+    <div class="dash-panel full-width">
+      <h2 class="panel-title">📡 Live Anomaly Feed</h2>
+      <div class="feed-container" id="anomalyFeed">
+        <div class="feed-placeholder">
+          <span>🔄 Fetching live anomaly data…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- India Map placeholder ──────────────────────────────── -->
+    <div class="dash-panel map-panel full-width">
+      <h2 class="panel-title">🗺️ Station Map — India</h2>
+      <div class="india-map-container" id="indiaMap">
+        <!-- SVG map with dots for each station -->
+        <svg viewBox="0 0 600 700" class="india-svg" xmlns="http://www.w3.org/2000/svg">
+          <!-- Simplified India outline -->
+          <path class="india-outline" d="M150,50 L200,40 L280,45 L350,60 L420,90 L460,130 L480,180 L490,230 L470,280 L440,320 L410,360 L380,400 L360,440 L340,480 L320,520 L300,560 L280,590 L260,610 L250,640 L240,630 L230,600 L220,570 L210,540 L200,510 L180,480 L160,450 L130,420 L100,380 L80,340 L70,290 L75,240 L90,190 L110,140 L130,90 Z" fill="none" stroke="rgba(99,179,237,0.3)" stroke-width="2"/>
+          <!-- Station dots -->
+          <g id="mapStations">
+            <!-- Delhi -->
+            <circle cx="270" cy="130" r="8" class="map-dot" data-station="delhi" data-label="Delhi"/>
+            <text x="285" y="135" class="map-label">Delhi</text>
+            <!-- Mumbai -->
+            <circle cx="160" cy="310" r="8" class="map-dot" data-station="mumbai" data-label="Mumbai"/>
+            <text x="175" y="315" class="map-label">Mumbai</text>
+            <!-- Jodhpur -->
+            <circle cx="185" cy="175" r="8" class="map-dot" data-station="jodhpur" data-label="Jodhpur"/>
+            <text x="200" y="180" class="map-label">Jodhpur</text>
+            <!-- Lucknow -->
+            <circle cx="320" cy="150" r="8" class="map-dot" data-station="lucknow" data-label="Lucknow"/>
+            <text x="335" y="155" class="map-label">Lucknow</text>
+            <!-- Kochi -->
+            <circle cx="215" cy="490" r="8" class="map-dot" data-station="kochi" data-label="Kochi"/>
+            <text x="230" y="495" class="map-label">Kochi</text>
+            <!-- Manali -->
+            <circle cx="250" cy="75" r="8" class="map-dot" data-station="manali" data-label="Manali"/>
+            <text x="265" y="80" class="map-label">Manali</text>
+          </g>
+        </svg>
+        <!-- Tooltip -->
+        <div class="map-tooltip" id="mapTooltip"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

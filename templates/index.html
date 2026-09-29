@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SkyGuard AI — Atmospheric Sentinel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+</head>
+<body class="home-body">
+
+  <!-- ── Navigation ─────────────────────────────────────────── -->
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-logo">🛡️</span>
+      <span class="nav-title">SkyGuard<span class="accent">AI</span></span>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link active">Home</a>
+      <a href="/dashboard" class="nav-link">Dashboard</a>
+      <a href="/predict-ui" class="nav-link">ML Predict</a>
+    </div>
+    <div class="nav-status" id="healthStatus">
+      <span class="status-dot"></span>
+      <span class="status-text">Connecting…</span>
+    </div>
+  </nav>
+
+  <!-- ── Hero Section ────────────────────────────────────────── -->
+  <section class="hero">
+    <!-- Three.js Canvas -->
+    <canvas id="earthCanvas"></canvas>
+
+    <!-- Overlay content -->
+    <div class="hero-content">
+      <div class="hero-badge">🌍 Real-Time Atmospheric AI</div>
+      <h1 class="hero-title">
+        <span class="title-line">Sky</span><span class="title-line accent">Guard</span>
+        <span class="title-line sub">Atmospheric Intelligence</span>
+      </h1>
+      <p class="hero-subtitle">
+        AI-powered anomaly detection across Indian weather stations — monitoring temperature, humidity &amp; pressure with explainable ML.
+      </p>
+      <div class="hero-actions">
+        <a href="/dashboard" class="btn btn-primary">📊 Live Dashboard</a>
+        <a href="/predict-ui" class="btn btn-secondary">🤖 Run Prediction</a>
+      </div>
+    </div>
+
+    <!-- Station bubbles floating around globe -->
+    <div class="station-bubble" style="top:22%;left:62%;" data-station="delhi">🏙️ Delhi</div>
+    <div class="station-bubble" style="top:55%;left:58%;" data-station="mumbai">🌊 Mumbai</div>
+    <div class="station-bubble" style="top:34%;left:64%;" data-station="lucknow">🌿 Lucknow</div>
+    <div class="station-bubble" style="top:40%;left:56%;" data-station="jodhpur">🏜️ Jodhpur</div>
+    <div class="station-bubble" style="top:65%;left:60%;" data-station="kochi">🌴 Kochi</div>
+    <div class="station-bubble" style="top:15%;left:63%;" data-station="manali">🏔️ Manali</div>
+
+    <!-- Scroll hint -->
+    <div class="scroll-hint">
+      <span>Scroll to explore</span>
+      <div class="scroll-arrow"></div>
+    </div>
+  </section>
+
+  <!-- ── Stats Strip ─────────────────────────────────────────── -->
+  <section class="stats-strip">
+    <div class="stat-card">
+      <div class="stat-icon">📡</div>
+      <div class="stat-val" id="statStations">6</div>
+      <div class="stat-label">Active Stations</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔬</div>
+      <div class="stat-val">3</div>
+      <div class="stat-label">Sensor Channels</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🤖</div>
+      <div class="stat-val">IForest</div>
+      <div class="stat-label">ML Model</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">⚡</div>
+      <div class="stat-val">&lt;50ms</div>
+      <div class="stat-label">Inference Latency</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon">🔍</div>
+      <div class="stat-val">SHAP+LIME</div>
+      <div class="stat-label">Explainability</div>
+    </div>
+  </section>
+
+  <!-- ── Features ───────────────────────────────────────────── -->
+  <section class="features">
+    <h2 class="section-title">How SkyGuard Works</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">🌐</div>
+        <h3>Live Data Ingestion</h3>
+        <p>Continuously ingests real-time atmospheric data from Open-Meteo API across 6 major Indian cities, storing in MongoDB Atlas.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🧠</div>
+        <h3>Isolation Forest ML</h3>
+        <p>Trained Isolation Forest model detects atmospheric anomalies — temperature spikes, pressure drops, humidity inconsistencies.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <h3>XAI Explainability</h3>
+        <p>Every anomaly alert comes with SHAP &amp; LIME explanations — pinpointing exactly which sensor caused the alarm and why.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🚨</div>
+        <h3>Severity Grading</h3>
+        <p>Four-tier severity system (NORMAL → ELEVATED → WARNING → CRITICAL) with specific anomaly type classification.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Pipeline Visual ────────────────────────────────────── -->
+  <section class="pipeline-section">
+    <h2 class="section-title">ML Training Pipeline</h2>
+    <div class="pipeline">
+      <div class="pipe-step">
+        <div class="pipe-icon">📥</div>
+        <div class="pipe-label">Data Ingestion</div>
+        <div class="pipe-desc">MongoDB ← Open-Meteo</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="pipe-icon">✅</div>
+        <div class="pipe-label">Data Validation</div>
+        <div class="pipe-desc">Schema + Drift Check</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="pipe-icon">⚗️</div>
+        <div class="pipe-label">Transformation</div>
+        <div class="pipe-desc">Feature Engineering</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step">
+        <div class="pipe-icon">🤖</div>
+        <div class="pipe-label">Model Training</div>
+        <div class="pipe-desc">Isolation Forest + SHAP</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer ─────────────────────────────────────────────── -->
+  <footer class="footer">
+    <p>🛡️ SkyGuard AI — Atmospheric Anomaly Detection System</p>
+    <p class="footer-sub">Powered by Isolation Forest · SHAP · LIME · Open-Meteo · MongoDB</p>
+  </footer>
+
+  <script src="/static/js/earth.js"></script>
+  <script src="/static/js/main.js"></script>
+</body>
+</html>
